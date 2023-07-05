@@ -22,7 +22,8 @@
     "@oclif/plugin-plugins": "^2.4.7",
     "axios": "^1.4.0",
     "lodash": "^4.17.21",
-    "simple-git": "^3.19.1"
+    "simple-git": "^3.19.1",
+    "sinon": "^15.2.0"
   },
   "devDependencies": {
     "@oclif/test": "^2.3.25",
