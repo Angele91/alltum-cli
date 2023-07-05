@@ -7,6 +7,7 @@ import * as os from 'node:os'
 import * as path from 'node:path'
 import {TYPE_CUSTOM_FIELD_ID, TaskTypes} from '../../constants'
 import {isEmpty} from 'lodash'
+import {setMyselfAsAssignee} from '../../helper'
 
 export default class Work extends Command {
   static description = 'start working on something'
@@ -71,11 +72,10 @@ export default class Work extends Command {
     const type = selectedType.id === TaskTypes.Bug ||
       selectedType.id === TaskTypes.Improvement ? 'i' : 'f'
 
-    this.log(taskName)
-    this.log(branchSuffix)
+    const branchName = `${type}_#${args.taskId}_${branchSuffix}`
 
-    ux.action.start(`Creating branch ${type}_#${args.taskId}_${branchSuffix}`)
-    await simpleGit().checkoutLocalBranch(`${type}_#${args.taskId}_${branchSuffix}`)
+    ux.action.start(`Creating branch ${branchName}`)
+    await simpleGit().checkoutLocalBranch(`${branchName}`)
     fs.writeFileSync(
       path.join(os.homedir(), '.alltum-config.json'),
       JSON.stringify({
@@ -84,6 +84,32 @@ export default class Work extends Command {
       }),
     )
     ux.action.stop()
+
+    const putTaskInProgress = await ux.prompt('Do you want to put the task in progress? (Y/n)')
+
+    if (putTaskInProgress.toLowerCase() === 'y') {
+      ux.action.start('Putting the task in progress')
+      await axios.put(
+        `https://api.clickup.com/api/v2/task/${taskId}`,
+        {
+          status: 'in_progress',
+        },
+        {
+          headers: {
+            Authorization: config.clickupToken,
+          },
+        },
+      )
+      ux.action.stop()
+    }
+
+    const assignToMe = await ux.prompt('Do you want to assign the task to yourself? (Y/n)')
+
+    if (assignToMe.toLowerCase() === 'y') {
+      ux.action.start('Assigning the task to yourself')
+      await setMyselfAsAssignee(taskId!, config.clickupToken)
+      ux.action.stop()
+    }
 
     this.log('Ready for work!')
   }
