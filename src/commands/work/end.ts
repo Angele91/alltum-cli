@@ -58,16 +58,21 @@ export default class WorkEnd extends Command {
 
     const branchResult = await git.branch()
     const {current} = branchResult
+    const commitMessages = await getCommitMessages()
 
-    ux.action.start(`Pushing "${current}" branch to origin`)
+    this.log(`This will do the following:
+    1. Will push ${commitMessages.length} commits to the "${current}" branch in origin
+    2. Will create a pull request for merging the current task ("${response.data.name}") in the branches you decide (optional)
+    3. Will move the task to review (optional)`)
 
-    await git.push(['--set-upstream', 'origin', current])
+    const shouldProceed = await ux.prompt('Would you like to continue? (y/n)')
 
-    const shouldMoveToReview = await ux.prompt('Would you like to move this task to review? (y/n)')
-
-    if (shouldMoveToReview.toLowerCase() === 'y') {
-      await setTaskStatus(config.clickupToken, config.currentTask, 'review')
+    if (shouldProceed.toLowerCase() !== 'y') {
+      return
     }
+
+    ux.action.start(`Pushing ${commitMessages.length} commits to the "${current}" branch in origin`)
+    await git.push(['--set-upstream', 'origin', current])
 
     const shouldCreatePR = await ux.prompt('Would you like to create a pull request? (y/n)')
 
@@ -89,11 +94,17 @@ export default class WorkEnd extends Command {
           body: getPRTemplate(
             config.currentTask,
             response.data.name,
-            await getCommitMessages(),
+            commitMessages,
           ),
           token: config.githubToken,
         })
       }
+    }
+
+    const shouldMoveToReview = await ux.prompt('Would you like to move this task to review? (y/n)')
+
+    if (shouldMoveToReview.toLowerCase() === 'y') {
+      await setTaskStatus(config.clickupToken, config.currentTask, 'review')
     }
 
     this.logJson(response.data)
