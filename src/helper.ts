@@ -22,6 +22,8 @@ export const createPullRequest = async (options: {
 }): Promise<void> => {
   const url = `https://api.github.com/repos/${options.head.owner}/${options.head.repo}/pulls`
 
+  console.log(`Creating in ${url}`)
+
   const data = {
     title: options.title,
     head: options.head.branch,
@@ -153,4 +155,30 @@ export const getCommitMessages = async (): Promise<string[]>  => {
   const commitMessages: string[] = logSummary.all.map(commit => `- ${commit.message}`)
 
   return commitMessages
+}
+
+export const getOriginOwner = async (): Promise<string | undefined> => {
+  const git: SimpleGit = simpleGit()
+
+  const remotes = await git.getRemotes(true)
+
+  const originRemote = remotes.find(remote => remote.name === 'origin')
+
+  if (originRemote) {
+    const originUrl: string = originRemote.refs.fetch
+    console.log(originUrl)
+    let owner: string | undefined
+
+    if (originUrl.startsWith('http')) {
+      const httpOwnerMatch: RegExpMatchArray | null = originUrl.match(/https?:\/\/[^/]+\/([^/]+)\/[^/]+$/)
+      owner = httpOwnerMatch ? httpOwnerMatch[1] : undefined
+    } else if (originUrl.startsWith('git')) {
+      const sshOwnerMatch: RegExpMatchArray | null = originUrl.match(/git@[^:]+:([^/]+)\/[^/]+$/)
+      owner = sshOwnerMatch ? sshOwnerMatch[1] : undefined
+    }
+
+    return owner
+  }
+
+  return undefined
 }
