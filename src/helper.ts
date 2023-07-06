@@ -147,12 +147,14 @@ ${listOfChanges.map(change => `- ${change}`).join('\n')}
 - N/A
 `)
 
-export const getCommitMessages = async (): Promise<string[]>  => {
+export const getCommitMessages = async (branchName: string): Promise<string[]>  => {
   const git: SimpleGit = simpleGit()
 
   const logSummary = await git.log()
 
-  const commitMessages: string[] = logSummary.all.map(commit => `- ${commit.message}`)
+  const commitMessages: string[] = logSummary.all
+  .filter(commit => commit.refs.includes(branchName))
+  .map(commit => `- ${commit.message}`)
 
   return commitMessages
 }

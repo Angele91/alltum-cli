@@ -64,7 +64,7 @@ export default class WorkEnd extends Command {
 
     const branchResult = await git.branch()
     const {current} = branchResult
-    let commitMessages = await getCommitMessages()
+    let commitMessages = await getCommitMessages(current)
 
     this.log(`This will do the following:
     1. Will push ${commitMessages.length} commits to the "${current}" branch in origin
@@ -92,12 +92,20 @@ export default class WorkEnd extends Command {
         }
 
         await git.commit(commitMessage)
-        commitMessages = await getCommitMessages()
+        commitMessages = await getCommitMessages(current)
       }
     }
 
-    ux.action.start(`Pushing ${commitMessages.length} commits to the "${current}" branch in origin`)
-    await git.push(['--set-upstream', 'origin', current])
+    ux.action.start(`Pushing ${commitMessages.length} commit(s) to the "${current}" branch in origin`)
+
+    const shouldVerify = await ux.prompt('Would you like to verify the push? (y/n)')
+    const args = ['--set-upstream', 'origin', current]
+    if (shouldVerify.toLowerCase() !== 'y') {
+      args.push('--no-verify')
+    }
+
+    await git.push(args)
+
     ux.action.stop()
 
     const shouldCreatePR = await ux.prompt('Would you like to create a pull request? (y/n)')
@@ -109,21 +117,25 @@ export default class WorkEnd extends Command {
 
       for (const env of envsArray) {
         this.log(`Creating pull request for ${env}`)
-        await createPullRequest({
-          title: `[#${config.currentTask}] ${response.data.name}`,
-          head: {
-            owner,
-            repo: repoName,
-            branch: current,
-          },
-          base: env,
-          body: getPRTemplate(
-            config.currentTask,
-            response.data.name,
-            commitMessages,
-          ),
-          token: config.githubToken,
-        })
+        try {
+          await createPullRequest({
+            title: `[#${config.currentTask}] ${response.data.name}`,
+            head: {
+              owner,
+              repo: repoName,
+              branch: current,
+            },
+            base: env,
+            body: getPRTemplate(
+              config.currentTask,
+              response.data.name,
+              commitMessages,
+            ),
+            token: config.githubToken,
+          })
+        } catch (error) {
+          this.logJson(error)
+        }
       }
     }
 
