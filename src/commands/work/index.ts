@@ -72,7 +72,7 @@ export default class Work extends Command {
     const type = selectedType.id === TaskTypes.Bug ||
       selectedType.id === TaskTypes.Improvement ? 'i' : 'f'
 
-    const branchName = `${type}_#${args.taskId}_${branchSuffix}`
+    const branchName = `${type}_#${taskId}_${branchSuffix}`
 
     ux.action.start(`Creating branch ${branchName}`)
     await simpleGit().checkoutLocalBranch(`${branchName}`)
