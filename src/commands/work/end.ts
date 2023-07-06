@@ -135,5 +135,13 @@ export default class WorkEnd extends Command {
 
     ux.action.stop()
     this.log('All done!')
+
+    fs.writeFileSync(
+      path.join(os.homedir(), '.alltum-config.json'),
+      JSON.stringify({
+        ...config,
+        currentTask: undefined,
+      }),
+    )
   }
 }
