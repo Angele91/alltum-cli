@@ -129,7 +129,7 @@ export const getPRTemplate = (
 ): string => (`## Related Task
 > ClickUp card related to the changes on this pull request. If the \`Type of Change\` is \`Release\` all the related cards should be listed.
 
-[${taskName}](${taskId})
+[${taskName}](https://app.clickup.com/t/${taskId})
 
 ## Preview
 > GIF/image reflecting the changes to the UI, if any
