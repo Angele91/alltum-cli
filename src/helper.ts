@@ -109,6 +109,12 @@ export const setTaskStatus = async (accessToken: string, taskId: string, statusI
   await axios.put(url, data, config)
 }
 
+const humanizeChange = (change: string) =>
+  change.replace('FIX:', 'Fixes')
+  .replace('ADD:', 'Adds')
+  .replace('REMOVE:', 'Deletes')
+  .replace('UPDATE:', 'Updates')
+
 export const getPRTemplate = (
   taskId: string,
   taskName: string,
@@ -132,7 +138,7 @@ export const getPRTemplate = (
 ## List of Changes
 > High level description of the changes added to the codebase. If the \`Type of Change\` is \`Release\`, this section can be removed.
 
-${listOfChanges.map(change => `- ${change}`).join('\n')}
+${listOfChanges.map(change => `- ${change}`).map(change => humanizeChange(change)).join('\n')}
 
 ## Prerequisites to Merge
 > Requirements that must be met before merging this pull request
@@ -154,7 +160,8 @@ export const getCommitMessages = async (branchName: string): Promise<string[]>  
 
   const commitMessages: string[] = logSummary.all
   .filter(commit => commit.refs.includes(branchName))
-  .map(commit => `- ${commit.message}`)
+  .filter(commit => commit.message.includes('Merge'))
+  .map(commit => `${commit.message}`)
 
   return commitMessages
 }
