@@ -23,7 +23,8 @@ export default class Work extends Command {
   }
 
   public async run(): Promise<void> {
-    const isCurrentDirARepository = await simpleGit().checkIsRepo()
+    const git = simpleGit()
+    const isCurrentDirARepository = await git.checkIsRepo()
 
     if (!isCurrentDirARepository) {
       this.log('No git repository found. You must be in a git repository to run this command.')
@@ -75,7 +76,17 @@ export default class Work extends Command {
     const branchName = `${type}_#${taskId}_${branchSuffix}`
 
     ux.action.start(`Creating branch ${branchName}`)
-    await simpleGit().checkoutLocalBranch(`${branchName}`)
+    const localBranches = await git.branchLocal()
+
+    if (localBranches.current === branchName) {
+      this.log(`You are already in the ${branchName} branch. Doing nothing.`)
+    } else if (localBranches.all.includes(branchName)) {
+      this.log(`Branch ${branchName} already exists. Checking out to it.`)
+      await git.checkout(branchName)
+    } else {
+      await git.checkoutLocalBranch(`${branchName}`)
+    }
+
     fs.writeFileSync(
       path.join(os.homedir(), '.alltum-config.json'),
       JSON.stringify({
@@ -85,29 +96,49 @@ export default class Work extends Command {
     )
     ux.action.stop()
 
-    const putTaskInProgress = await ux.prompt('Do you want to put the task in progress? (Y/n)')
+    if (response.data.status !== 'in progress') {
+      const putTaskInProgress = await ux.prompt('Do you want to put the task in progress? (Y/n)')
 
-    if (putTaskInProgress.toLowerCase() === 'y') {
-      ux.action.start('Putting the task in progress')
-      await axios.put(
-        `https://api.clickup.com/api/v2/task/${taskId}`,
-        {
-          status: 'in_progress',
-        },
-        {
-          headers: {
-            Authorization: config.clickupToken,
-          },
-        },
-      )
-      ux.action.stop()
+      if (putTaskInProgress.toLowerCase() === 'y') {
+        ux.action.start('Putting the task in progress')
+        try {
+          await axios.put(
+            `https://api.clickup.com/api/v2/task/${taskId}`,
+            {
+              status: 'in progress',
+            },
+            {
+              headers: {
+                Authorization: config.clickupToken,
+              },
+            },
+          )
+        } catch (error) {
+          this.logJson(error)
+          const shouldContinue = await ux.prompt('Could not put the task in progress. Do you want to continue? (y/n)')
+          if (shouldContinue.toLowerCase() !== 'y') {
+            return
+          }
+        }
+
+        ux.action.stop()
+      }
     }
 
     const assignToMe = await ux.prompt('Do you want to assign the task to yourself? (Y/n)')
 
     if (assignToMe.toLowerCase() === 'y') {
       ux.action.start('Assigning the task to yourself')
-      await setMyselfAsAssignee(taskId!, config.clickupToken)
+      try {
+        await setMyselfAsAssignee(taskId!, config.clickupToken)
+      } catch (error) {
+        this.logJson(error)
+        const shouldContinue = await ux.prompt('Could not assign the task to yourself. Do you want to continue? (y/n)')
+        if (shouldContinue.toLowerCase() !== 'y') {
+          return
+        }
+      }
+
       ux.action.stop()
     }
 

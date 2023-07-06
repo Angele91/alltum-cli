@@ -81,8 +81,15 @@ export const getRepoName = async (): Promise<string | undefined | null> => {
   return null
 }
 
+/**
+ * Sets the current user as the assignee for a specific task.
+ *
+ * @param {string} taskId - The ID of the task.
+ * @param {string} clickupToken - The ClickUp API token.
+ * @return {Promise<void>} A Promise that resolves when the assignee is set successfully.
+ */
 export const setMyselfAsAssignee = async (taskId: string, clickupToken: string): Promise<void> => {
-  const url = `https://api.clickup.com/api/v2/task/${taskId}/assignees`
+  const url = `https://api.clickup.com/api/v2/task/${taskId}`
   const config = {
     headers: {
       Authorization: clickupToken,
