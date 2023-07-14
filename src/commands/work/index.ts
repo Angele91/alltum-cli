@@ -70,8 +70,8 @@ export default class Work extends Command {
       (option: { orderindex: number }) => option.orderindex === typeCustomField.value,
     )
 
-    const type = selectedType.id === TaskTypes.Bug ||
-      selectedType.id === TaskTypes.Improvement ? 'i' : 'f'
+    const type = (selectedType?.id === TaskTypes.Bug ||
+      selectedType?.id === TaskTypes.Improvement) ? 'i' : 'f'
 
     const branchName = `${type}_#${taskId}_${branchSuffix}`
 
